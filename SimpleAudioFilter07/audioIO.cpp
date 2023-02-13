@@ -155,10 +155,9 @@ void audioIO_loop(void)
     }
 
     // apply the NR.
-    if (nrMode >= 0) {
-      AVGFilter_put(&flt2, newSample);
-      newSample = AVGFilter_get(&flt2);
-    }
+
+    AVGFilter_put(&flt2, newSample);
+    newSample = AVGFilter_get(&flt2);
 
     // Main Filter Banks
     /// AUDIO PROCESSING WITH FILTERING AND DECIMATIN BLOCK
