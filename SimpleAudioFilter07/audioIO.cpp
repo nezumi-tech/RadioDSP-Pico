@@ -63,7 +63,7 @@ ADCInput adcIn(26);
 #define PIN_BUTTON_AUDIO_GAIN 11
 
 // Over range onboard led
- #define LED_PIN 25
+#define LED_PIN 25
 // Over range external led
 //#define LED_PIN 12
 
@@ -72,7 +72,7 @@ ADCInput adcIn(26);
 // this assures no distorsion or overload.
 // the 12 bit range ADC is -2048 to +2047 (+- 1.5 V, 3V pp)
 // The over range bling at about 2.7 V of input peak signal
-// (3 V pp) this is a good safe guard for 
+// (3 V pp) this is a good safe guard for
 // the Pico ADC.
 #define OVER_RANGE 1840
 
@@ -150,7 +150,7 @@ void audioIO_loop(void)
     // Pre Filter for Decimator Anti Aliasing
     // a decimator factor by 2 need a 8kHz pre filter
     if (decimator_factor == 2) {
-      Dec8KFilter_put(&fltDec1, newSample);
+      Dec8KFilter_put(&fltDec1, newSample * 2);
       newSample = Dec8KFilter_get(&fltDec1);
     }
 
@@ -174,21 +174,21 @@ void audioIO_loop(void)
       // Filter for AM mode (fs=16 ksps)
       if (filterMode == 1 && decimator_factor == 1) {
 
-        AM1Filter_put(&flt, newSample);
+        AM1Filter_put(&flt, newSample * 2);
         outSample = AM1Filter_get(&flt);
       }
 
       // Filter for SSB (fs=8 ksps)
       if (filterMode == 2 && decimator_factor == 2) {
 
-        SSB1Filter_put(&flt0, newSample);
+        SSB1Filter_put(&flt0, newSample * 2);
         outSample_8k = SSB1Filter_get(&flt0);
       }
 
       // Filter for CW (fs=8 ksps)
       if (filterMode == 3 && decimator_factor == 2) {
 
-        CW1Filter_put(&flt1, newSample);
+        CW1Filter_put(&flt1, newSample * 2);
         outSample_8k = CW1Filter_get(&flt1);
       }
 
@@ -197,7 +197,7 @@ void audioIO_loop(void)
     // Post Filter for Interpolation Anti Aliasing
     // a decimator factor by 2 need a 8kHz pre filter
     if (decimator_factor == 2) {
-      Dec8KFilter_put(&fltDec2, outSample_8k);
+      Dec8KFilter_put(&fltDec2, outSample_8k * 2);
       outSample = Dec8KFilter_get(&fltDec2);
     }
 
