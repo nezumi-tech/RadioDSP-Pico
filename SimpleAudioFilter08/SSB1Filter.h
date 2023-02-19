@@ -22,7 +22,7 @@ fixed point precision: 16 bits
 
 */
 
-#define SSB1FILTER_TAP_NUM 32
+#define SSB1FILTER_TAP_NUM 85
 
 typedef struct {
   int history[SSB1FILTER_TAP_NUM];

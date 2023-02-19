@@ -60,22 +60,22 @@ ADCInput adcIn(26);
 #define PIN_BUTTON_AUDIO_GAIN 11
 
 // Over range onboard led
-// #define LED_PIN 25
+#define LED_PIN 25
 // Over range external led
-#define LED_PIN 12
+//#define LED_PIN 12
 
 // define the maximum safe signal in input
-// the led blink at 1/10 of maximum input level
+// the led blink at 90% of maximum input level
 // this assures no distorsion or overload.
 // the 12 bit range ADC is -2048 to +2047 (+- 1.5 V, 3V pp)
-// The over range bling at about 150 mV of input peak signal
-// (300 mV pp) this is a good safe guard for 
+// The over range bling at about 2.7 V of input peak signal
+// (3 V pp) this is a good safe guard for
 // the Pico ADC.
-#define OVER_RANGE 200
+#define OVER_RANGE 1840
 
 // define min and max gain for output amplification
-#define MIN_GAIN   2   // suitable for headphone
-#define MAX_GAIN   30  // suitable for speaker
+#define MIN_GAIN   1   // suitable for headphone
+#define MAX_GAIN   8   // suitable for speaker
 
 // globals
 volatile uint8_t     decimator_ct = 0;
@@ -93,7 +93,6 @@ uint8_t       nrMode = 0;
 int16_t       outSample = 0;
 int16_t       outSample_8k = 0;
 int8_t        gainAudio = MIN_GAIN;
-int8_t        gainFilter = 1;
 
 // Check if need to boost the audio
 // For safe reasons the value will be
@@ -101,14 +100,14 @@ int8_t        gainFilter = 1;
 void initAudioGain(void) {
 
   // set the default audioGain for headphones
-  gainAudio = MIN_GAIN;
+  gainAudio = MAX_GAIN;
   if (digitalRead(PIN_BUTTON_AUDIO_GAIN) == LOW) {
     // if the pin is connected to GND,
     // the audio gain will be set to 25, suitable
     // to drive loud a 4 to 8ohm 3W speaker
     // to allow this, the MAX amplifier need a Power supply
     // of 5V (1,5 A)
-    gainAudio = MAX_GAIN;
+    gainAudio = MIN_GAIN;
   }
 
 }
@@ -146,7 +145,7 @@ void audioIO_loop(void)
     // Pre Filter for Decimator Anti Aliasing
     // a decimator factor by 2 need a 8kHz pre filter
     if (decimator_factor == 2) {
-      Dec8KFilter_put(&fltDec1, newSample);
+      Dec8KFilter_put(&fltDec1, newSample * 2);
       newSample = Dec8KFilter_get(&fltDec1);
     }
 
@@ -168,7 +167,7 @@ void audioIO_loop(void)
       // Filter for SSB (fs=8 ksps)
       if (filterMode >0 && decimator_factor == 2) {
 
-        SSB1Filter_put(&flt0, newSample);
+        SSB1Filter_put(&flt0, newSample * 2);
         outSample_8k = SSB1Filter_get(&flt0);
       }
 
@@ -177,15 +176,13 @@ void audioIO_loop(void)
     // Post Filter for Interpolation Anti Aliasing
     // a decimator factor by 2 need a 8kHz pre filter
     if (decimator_factor == 2) {
-      Dec8KFilter_put(&fltDec2, outSample_8k);
+      Dec8KFilter_put(&fltDec2, outSample_8k * 2);
       outSample = Dec8KFilter_get(&fltDec2);
     } 
 
-    int16_t  outSample2= outSample * gainFilter;
-
     // write the same sample twice, once for left and once for the right channel
-    i2s.write(outSample2);
-    i2s.write(outSample2);
+    i2s.write(outSample);
+    i2s.write(outSample);
 
   };
 
@@ -216,27 +213,22 @@ void core1_commands_check() {
         // Active the filter stage
         if (filterMode == 0){
           decimator_factor = 1;
-          gainFilter=1;
         }
         else if (filterMode == 1){ // SSB W
           decimator_factor = 2;
           SSB1Filter_init(&flt0, ID_BANDPASS, W_HAMMING, 200, 3400, 8000.0);
-          gainFilter=5;
         }
         else if (filterMode == 2){ // SSB N
           decimator_factor = 2;
           SSB1Filter_init(&flt0, ID_BANDPASS, W_HAMMING, 300, 1800, 8000.0);
-          gainFilter=5;
         }
         else if (filterMode == 3){ // CW 600hz
           decimator_factor = 2;
-          SSB1Filter_init(&flt0, ID_BANDPASS, W_BLACKMAN, 400, 1000, 8000.0);
-          gainFilter=6;
+          SSB1Filter_init(&flt0, ID_BANDPASS, W_HAMMING, 400, 1000, 8000.0);
         }
         else if (filterMode == 4){  // CW 300hz
           decimator_factor = 2;
-          SSB1Filter_init(&flt0, ID_BANDPASS, W_BLACKMAN, 450, 750, 8000.0);
-          gainFilter=8;
+          SSB1Filter_init(&flt0, ID_BANDPASS, W_HAMMING, 450, 750, 8000.0);
         }
       }
     }
@@ -268,7 +260,7 @@ void core1_commands_check() {
       }
     }
 
-    sleep_ms(500);
+    sleep_ms(100);
   }
 }
 
