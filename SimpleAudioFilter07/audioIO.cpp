@@ -44,28 +44,28 @@
 
 // GPIO I2S pin numbers
 // TO connect the MAX98357A power Amplifier
-#define I2S_BCLK 15
-#define I2S_WS (I2S_BCLK+1)
-#define I2S_DOUT 17
+#define I2S_BCLK 18
+#define I2S_WS 17
+#define I2S_DOUT 16
 const int sampleRate = 16000;
 
 // Create the I2S port using a PIO state machine
 I2S i2s(OUTPUT);
 
-// Create inputt on Adc 0 - GPIO26
-ADCInput adcIn(26);
+// Create inputt on Adc 2 - GPIO28
+ADCInput adcIn(28);
 
 // controll button to select filter
-#define PIN_BUTTON_FL 14
+#define PIN_BUTTON_FL 26
 // controll button to select nr
-#define PIN_BUTTON_NR 13
+#define PIN_BUTTON_NR 21
 // control to se the audio gain
 #define PIN_BUTTON_AUDIO_GAIN 11
 
 // Over range onboard led
 #define LED_PIN 25
 // Over range external led
-//#define LED_PIN 12
+//#define LED_PIN 27
 
 // define the maximum safe signal in input
 // the led blink at 90% of maximum input level
@@ -105,14 +105,14 @@ int8_t        gainAudio = MIN_GAIN;
 void initAudioGain(void) {
 
   // set the default audioGain for headphones
-  gainAudio = MIN_GAIN;
+  gainAudio = MAXN_GAIN;
   if (digitalRead(PIN_BUTTON_AUDIO_GAIN) == LOW) {
     // if the pin is connected to GND,
     // the audio gain will be set to 25, suitable
     // to drive loud a 4 to 8ohm 3W speaker
     // to allow this, the MAX amplifier need a Power supply
     // of 5V (1,5 A)
-    gainAudio = MAX_GAIN;
+    gainAudio = MIN_GAIN;
   }
 
 }
