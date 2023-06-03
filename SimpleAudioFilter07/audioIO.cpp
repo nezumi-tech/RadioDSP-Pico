@@ -44,9 +44,9 @@
 
 // GPIO I2S pin numbers
 // TO connect the MAX98357A power Amplifier
-#define I2S_BCLK 18
+#define I2S_BCLK 16
 #define I2S_WS 17
-#define I2S_DOUT 16
+#define I2S_DOUT 18
 const int sampleRate = 16000;
 
 // Create the I2S port using a PIO state machine
@@ -105,7 +105,7 @@ int8_t        gainAudio = MIN_GAIN;
 void initAudioGain(void) {
 
   // set the default audioGain for headphones
-  gainAudio = MAXN_GAIN;
+  gainAudio = MAX_GAIN;
   if (digitalRead(PIN_BUTTON_AUDIO_GAIN) == LOW) {
     // if the pin is connected to GND,
     // the audio gain will be set to 25, suitable
