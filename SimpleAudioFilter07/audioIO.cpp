@@ -6,7 +6,7 @@
    Filter Functions :
    0. Audio passthrough
    1. AM/SSB filter 6000 kHz
-   2. SSB filter    3000 kHz
+   2. SSB1 filter    3000 kHz
    3. CW  filter    700  Hz
 
    DNR Functions:
@@ -31,9 +31,15 @@
 #include "Arduino.h"
 #include "audioIO.h"
 
-#include "SSB1Filter.h"
+#include "SSB1Filter.h" // 3000Hz
+#include "SSB2Filter.h" // 2500Hz
+#include "SSB3Filter.h" // 2000Hz
+#include "SSB4Filter.h" // 1500Hz
 #include "AM1Filter.h"
-#include "CW1Filter.h"
+#include "CW1Filter.h" // 200Hz
+#include "CW2Filter.h" // 400Hz
+#include "CW3Filter.h" // 600Hz
+#include "CW4Filter.h" // 800Hz
 #include "AVGFilter.h"
 #include "Dec8KFilter.h"
 
@@ -56,9 +62,13 @@ I2S i2s(OUTPUT);
 ADCInput adcIn(28);
 
 // controll button to select filter
-#define PIN_BUTTON_FL 26
+#define PIN_BUTTON_FLp 26
+#define PIN_BUTTON_FLn 22
+
 // controll button to select nr
-#define PIN_BUTTON_NR 21
+#define PIN_BUTTON_NRp 21
+#define PIN_BUTTON_NRn 20
+
 // control to se the audio gain
 #define PIN_BUTTON_AUDIO_GAIN 11
 
@@ -89,6 +99,16 @@ SSB1Filter    flt0;   // AM/SSB filter
 AM1Filter     flt;    // SSB filter
 CW1Filter     flt1;   // CW  filter
 AVGFilter     flt2;   // AVG  filter
+
+SSB2Filter    flt3;   // AM/SSB filter
+SSB3Filter    flt4;   // AM/SSB filter
+SSB4Filter    flt5;   // AM/SSB filter
+
+CW2Filter     flt6;   // CW  filter
+CW3Filter     flt7;   // CW  filter
+CW4Filter     flt8;   // CW  filter
+
+
 Dec8KFilter   fltDec1;
 Dec8KFilter   fltDec2;
 
@@ -184,11 +204,53 @@ void audioIO_loop(void)
         outSample_8k = SSB1Filter_get(&flt0);
       }
 
-      // Filter for CW (fs=8 ksps)
+      // Filter for SSB (fs=8 ksps)
       if (filterMode == 3 && decimator_factor == 2) {
+
+        SSB2Filter_put(&flt3, newSample * 2);
+        outSample_8k = SSB2Filter_get(&flt3);
+      }
+
+      // Filter for SSB (fs=8 ksps)
+      if (filterMode == 4 && decimator_factor == 2) {
+
+        SSB3Filter_put(&flt4, newSample * 2);
+        outSample_8k = SSB3Filter_get(&flt4);
+      }
+
+      // Filter for SSB (fs=8 ksps)
+      if (filterMode == 5 && decimator_factor == 2) {
+
+        SSB4Filter_put(&flt5, newSample * 2);
+        outSample_8k = SSB4Filter_get(&flt5);
+      }
+
+      // Filter for CW (fs=8 ksps)
+      if (filterMode == 6 && decimator_factor == 2) {
 
         CW1Filter_put(&flt1, newSample * 2);
         outSample_8k = CW1Filter_get(&flt1);
+      }
+
+      // Filter for CW (fs=8 ksps)
+      if (filterMode == 7 && decimator_factor == 2) {
+
+        CW2Filter_put(&flt6, newSample * 2);
+        outSample_8k = CW2Filter_get(&flt6);
+      }
+
+      // Filter for CW (fs=8 ksps)
+      if (filterMode == 8 && decimator_factor == 2) {
+
+        CW3Filter_put(&flt7, newSample * 2);
+        outSample_8k = CW3Filter_get(&flt7);
+      }
+
+      // Filter for CW (fs=8 ksps)
+      if (filterMode == 9 && decimator_factor == 2) {
+
+        CW4Filter_put(&flt8, newSample * 2);
+        outSample_8k = CW4Filter_get(&flt8);
       }
 
     };
@@ -209,8 +271,10 @@ void audioIO_loop(void)
 }
 
 
-uint8_t val, old_val = HIGH;
-uint8_t val1, old_val1 = HIGH;
+int8_t valFLp, old_valFLp = HIGH;
+int8_t valFLn, old_valFLn = HIGH;
+int8_t valNRp, old_valNRp = HIGH;
+int8_t valNRn, old_valNRn = HIGH;
 // check commands on core 1
 void core1_commands_check() {
 
@@ -218,14 +282,14 @@ void core1_commands_check() {
   while (1) {
 
     // debounche
-    val = digitalRead(PIN_BUTTON_FL);
-    if (val != old_val) {
-      old_val = val;
+    valFLp = digitalRead(PIN_BUTTON_FLp);
+    if (valFLp != old_valFLp) {
+      old_valFLp = valFLp;
 
-      if (val == LOW) {
+      if (valFLp == LOW) {
 
         // Roll the filter selection
-        if (filterMode == 3)
+        if (filterMode == 9)
           filterMode = 0;
         else
           filterMode++;
@@ -239,15 +303,77 @@ void core1_commands_check() {
           decimator_factor = 2;
         else if (filterMode == 3)
           decimator_factor = 2;
+        else if (filterMode == 4)
+          decimator_factor = 2;
+        else if (filterMode == 5)
+          decimator_factor = 2;
+        else if (filterMode == 6)
+          decimator_factor = 2;
+        else if (filterMode == 7)
+          decimator_factor = 2;
+        else if (filterMode == 8)
+          decimator_factor = 2;
+        else if (filterMode == 9)
+          decimator_factor = 2;
+
+        for (int i = 0; i < filterMode; i++) {
+          gpio_put(LED_PIN, 1);
+          delay(50);
+          gpio_put(LED_PIN, 0);
+          delay(50);
+        }
+      }
+    }
+
+    valFLn = digitalRead(PIN_BUTTON_FLn);
+    if (valFLn != old_valFLn) {
+      old_valFLn = valFLn;
+
+      if (valFLn == LOW) {
+
+        // Roll the filter selection
+        if (filterMode == 0)
+          filterMode = 9;
+        else
+          filterMode--;
+
+        // Active the filter stage
+        if (filterMode == 0)
+          decimator_factor = 1;
+        else if (filterMode == 1)
+          decimator_factor = 1;
+        else if (filterMode == 2)
+          decimator_factor = 2;
+        else if (filterMode == 3)
+          decimator_factor = 2;
+        else if (filterMode == 4)
+          decimator_factor = 2;
+        else if (filterMode == 5)
+          decimator_factor = 2;
+        else if (filterMode == 6)
+          decimator_factor = 2;
+        else if (filterMode == 7)
+          decimator_factor = 2;
+        else if (filterMode == 8)
+          decimator_factor = 2;
+        else if (filterMode == 9)
+          decimator_factor = 2;
+
+        for (int i = 0; i < filterMode; i++) {
+          gpio_put(LED_PIN, 1);
+          delay(50);
+          gpio_put(LED_PIN, 0);
+          delay(50);
+        }
       }
     }
 
     // debounche
-    val1 = digitalRead(PIN_BUTTON_NR);
-    if (val1 != old_val1) {
-      old_val1 = val1;
+    valNRp = digitalRead(PIN_BUTTON_NRp);
+    if (valNRp != old_valNRp) {
+      old_valNRp = valNRp;
 
-      if (val1 == LOW) {
+      if (valNRp == LOW) {
 
         // Roll the filter selection
         if (nrMode == 3)
@@ -269,7 +395,33 @@ void core1_commands_check() {
       }
     }
 
-    sleep_ms(500);
+    valNRn = digitalRead(PIN_BUTTON_NRn);
+    if (valNRn != old_valNRn) {
+      old_valNRn = valNRn;
+
+      if (valNRn == LOW) {
+
+        // Roll the filter selection
+        if (nrMode == 0)
+          nrMode = 3;
+        else
+          nrMode--;
+
+        // Noise Reduction stage
+        if (nrMode == 0) {
+          AVGFilter_init(&flt2, 2);
+        } else if (nrMode == 1) {
+          AVGFilter_init(&flt2, 5);
+        } else if (nrMode == 2) {
+          AVGFilter_init(&flt2, 10);
+        } else if (nrMode == 3) {
+          AVGFilter_init(&flt2, 15);
+        }
+
+      }
+    }
+
+    sleep_ms(200);
   }
 }
 
@@ -283,6 +435,15 @@ void audioIO_setup() {
   AM1Filter_init(&flt);
   CW1Filter_init(&flt1);
   AVGFilter_init(&flt2, 2);
+
+  SSB2Filter_init(&flt3);
+  SSB3Filter_init(&flt4);
+  SSB4Filter_init(&flt5);
+
+  CW2Filter_init(&flt6);
+  CW3Filter_init(&flt7);
+  CW4Filter_init(&flt8);
+
 
   gpio_init_mask(1 << LED_PIN);
   gpio_set_dir(LED_PIN, GPIO_OUT);
@@ -310,8 +471,10 @@ void audioIO_setup() {
   }
 
   // start controller commands :
-  pinMode(PIN_BUTTON_FL, INPUT_PULLUP);
-  pinMode(PIN_BUTTON_NR, INPUT_PULLUP);
+  pinMode(PIN_BUTTON_FLp, INPUT_PULLUP);
+  pinMode(PIN_BUTTON_FLn, INPUT_PULLUP);
+  pinMode(PIN_BUTTON_NRp, INPUT_PULLUP);
+  pinMode(PIN_BUTTON_NRn, INPUT_PULLUP);
   pinMode(PIN_BUTTON_AUDIO_GAIN, INPUT_PULLUP);
 
   // set the maximum audio gain
