@@ -87,8 +87,7 @@ ADCInput adcIn(28);
 #define OVER_RANGE 1840
 
 // define min and max gain for output amplification
-#define MIN_GAIN   1   // suitable for headphone
-#define MAX_GAIN   8  // suitable for speaker
+#define Default_GAIN   8  // suitable for speaker
 
 // globals
 volatile uint8_t     decimator_ct = 0;
@@ -117,7 +116,7 @@ uint8_t       filterMode = 0;
 uint8_t       nrMode = 0;
 int16_t       outSample = 0;
 int16_t       outSample_8k = 0;
-int8_t        gainAudio = MIN_GAIN;
+int8_t        gainAudio = Default_GAIN;
 
 // Check if need to boost the audio
 // For safe reasons the value will be
@@ -125,14 +124,25 @@ int8_t        gainAudio = MIN_GAIN;
 void initAudioGain(void) {
 
   // set the default audioGain for headphones
-  gainAudio = MAX_GAIN;
-  if (digitalRead(PIN_BUTTON_AUDIO_GAIN) == LOW) {
+  gainAudio = Default_GAIN;
+  // if (digitalRead(PIN_BUTTON_AUDIO_GAIN) == LOW) {
+  if (digitalRead(PIN_BUTTON_FLp) == LOW) {
+    gainAudio = Default_GAIN * 2;
+  }
+  if (digitalRead(PIN_BUTTON_FLn) == LOW) {
+    gainAudio = Default_GAIN * 4;
+  }
+  if (digitalRead(PIN_BUTTON_NRp) == LOW) {
+    gainAudio = Default_GAIN * 8;
+  }
+  if (digitalRead(PIN_BUTTON_NRn) == LOW) {
+
     // if the pin is connected to GND,
     // the audio gain will be set to 25, suitable
     // to drive loud a 4 to 8ohm 3W speaker
     // to allow this, the MAX amplifier need a Power supply
     // of 5V (1,5 A)
-    gainAudio = MIN_GAIN;
+    gainAudio = Default_GAIN * 16;
   }
 
 }
@@ -277,6 +287,8 @@ int8_t valNRp, old_valNRp = HIGH;
 int8_t valNRn, old_valNRn = HIGH;
 // check commands on core 1
 void core1_commands_check() {
+  // Initial delay
+  delay(2000);
 
   // run on loop
   while (1) {
