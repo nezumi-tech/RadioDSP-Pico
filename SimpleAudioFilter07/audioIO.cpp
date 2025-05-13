@@ -31,15 +31,15 @@
 #include "Arduino.h"
 #include "audioIO.h"
 
-#include "SSB1Filter.h" // 3000Hz
-#include "SSB2Filter.h" // 2500Hz
-#include "SSB3Filter.h" // 2000Hz
-#include "SSB4Filter.h" // 1500Hz
+#include "SSB1Filter.h"  // 3000Hz
+#include "SSB2Filter.h"  // 2500Hz
+#include "SSB3Filter.h"  // 2000Hz
+#include "SSB4Filter.h"  // 1500Hz
 #include "AM1Filter.h"
-#include "CW1Filter.h" // 200Hz
-#include "CW2Filter.h" // 400Hz
-#include "CW3Filter.h" // 600Hz
-#include "CW4Filter.h" // 800Hz
+#include "CW1Filter.h"  // 200Hz
+#include "CW2Filter.h"  // 400Hz
+#include "CW3Filter.h"  // 600Hz
+#include "CW4Filter.h"  // 800Hz
 #include "AVGFilter.h"
 #include "Dec8KFilter.h"
 
@@ -47,6 +47,22 @@
 
 #include <I2S.h>
 #include <ADCInput.h>
+
+// SSD1306 Display
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128  // OLED display width, in pixels
+#define SCREEN_HEIGHT 64  // OLED display height, in pixels
+
+// Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
+// The pins for I2C are defined by the Wire-library.
+// On an arduino UNO:       A4(SDA), A5(SCL)
+// On an arduino MEGA 2560: 20(SDA), 21(SCL)
+// On an arduino LEONARDO:   2(SDA),  3(SCL), ...
+#define OLED_RESET -1        // Reset pin # (or -1 if sharing Arduino reset pin)
+#define SCREEN_ADDRESS 0x3C  ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
 
 // GPIO I2S pin numbers
 // TO connect the MAX98357A power Amplifier
@@ -87,36 +103,36 @@ ADCInput adcIn(28);
 #define OVER_RANGE 1840
 
 // define min and max gain for output amplification
-#define Default_GAIN   8  // suitable for speaker
+#define Default_GAIN 8  // suitable for speaker
 
 // globals
-volatile uint8_t     decimator_ct = 0;
-volatile uint8_t     decimator_factor = 1;
-volatile int16_t     avg, sum, out_sample = 0;
+volatile uint8_t decimator_ct = 0;
+volatile uint8_t decimator_factor = 1;
+volatile int16_t avg, sum, out_sample = 0;
 
-SSB1Filter    flt0;   // AM/SSB filter
-AM1Filter     flt;    // SSB filter
-CW1Filter     flt1;   // CW  filter
-AVGFilter     flt2;   // AVG  filter
+SSB1Filter flt0;  // AM/SSB filter
+AM1Filter flt;    // SSB filter
+CW1Filter flt1;   // CW  filter
+AVGFilter flt2;   // AVG  filter
 
-SSB2Filter    flt3;   // AM/SSB filter
-SSB3Filter    flt4;   // AM/SSB filter
-SSB4Filter    flt5;   // AM/SSB filter
+SSB2Filter flt3;  // AM/SSB filter
+SSB3Filter flt4;  // AM/SSB filter
+SSB4Filter flt5;  // AM/SSB filter
 
-CW2Filter     flt6;   // CW  filter
-CW3Filter     flt7;   // CW  filter
-CW4Filter     flt8;   // CW  filter
+CW2Filter flt6;  // CW  filter
+CW3Filter flt7;  // CW  filter
+CW4Filter flt8;  // CW  filter
 
 
-Dec8KFilter   fltDec1;
-Dec8KFilter   fltDec2;
+Dec8KFilter fltDec1;
+Dec8KFilter fltDec2;
 
-int           passInput = 0;
-uint8_t       filterMode = 0;
-uint8_t       nrMode = 0;
-int16_t       outSample = 0;
-int16_t       outSample_8k = 0;
-int8_t        gainAudio = Default_GAIN;
+int passInput = 0;
+uint8_t filterMode = 0;
+uint8_t nrMode = 0;
+int16_t outSample = 0;
+int16_t outSample_8k = 0;
+int8_t gainAudio = Default_GAIN;
 
 // Check if need to boost the audio
 // For safe reasons the value will be
@@ -144,17 +160,15 @@ void initAudioGain(void) {
     // of 5V (1,5 A)
     gainAudio = Default_GAIN * 16;
   }
-
 }
 
 // continuous loop running for audio processing
-void audioIO_loop(void)
-{
+void audioIO_loop(void) {
   int16_t newSample = 0;
 
   // For debug only
 #ifdef DEBUG_SERIAL
-  int  nn = micros();
+  int nn = micros();
 #endif
 
 
@@ -191,8 +205,8 @@ void audioIO_loop(void)
 
     // Main Filter Banks
     /// AUDIO PROCESSING WITH FILTERING AND DECIMATIN BLOCK
-    decimator_ct ++;
-    if ( decimator_ct >= decimator_factor ) {
+    decimator_ct++;
+    if (decimator_ct >= decimator_factor) {
       decimator_ct = 0;
 
       // passthrough - no decimation (fs=16 ksps)
@@ -262,7 +276,6 @@ void audioIO_loop(void)
         CW4Filter_put(&flt8, newSample * 2);
         outSample_8k = CW4Filter_get(&flt8);
       }
-
     };
 
     // Post Filter for Interpolation Anti Aliasing
@@ -275,9 +288,7 @@ void audioIO_loop(void)
     // write the same sample twice, once for left and once for the right channel
     i2s.write(outSample);
     i2s.write(outSample);
-
   };
-
 }
 
 
@@ -287,6 +298,21 @@ int8_t valNRp, old_valNRp = HIGH;
 int8_t valNRn, old_valNRn = HIGH;
 // check commands on core 1
 void core1_commands_check() {
+  Wire.setSDA(4);
+  Wire.setSCL(5);
+  Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+  display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
+  display.clearDisplay();
+
+ display.setTextSize(2);
+  display.setTextColor(WHITE);
+  display.setCursor(0, 0);
+  display.print("Filter : ");
+  display.println(filterMode);
+  display.print("NR     : ");
+  display.println(nrMode);
+  display.display(); 
+
   // Initial delay
   delay(2000);
 
@@ -328,12 +354,22 @@ void core1_commands_check() {
         else if (filterMode == 9)
           decimator_factor = 2;
 
-        for (int i = 0; i < filterMode; i++) {
-          gpio_put(LED_PIN, 1);
-          delay(50);
-          gpio_put(LED_PIN, 0);
-          delay(50);
-        }
+        // for (int i = 0; i < filterMode; i++) {
+        //   gpio_put(LED_PIN, 1);
+        //   delay(50);
+        //   gpio_put(LED_PIN, 0);
+        //   delay(50);
+
+        // }
+         display.clearDisplay();
+ display.setTextSize(2);
+  display.setTextColor(WHITE);
+  display.setCursor(0, 0);
+  display.print("Filter : ");
+  display.println(filterMode);
+  display.print("NR     : ");
+  display.println(nrMode);
+  display.display();
       }
     }
 
@@ -371,12 +407,22 @@ void core1_commands_check() {
         else if (filterMode == 9)
           decimator_factor = 2;
 
-        for (int i = 0; i < filterMode; i++) {
-          gpio_put(LED_PIN, 1);
-          delay(50);
-          gpio_put(LED_PIN, 0);
-          delay(50);
-        }
+        // for (int i = 0; i < filterMode; i++) {
+        //   gpio_put(LED_PIN, 1);
+        //   delay(50);
+        //   gpio_put(LED_PIN, 0);
+        //   delay(50);
+
+        // }
+         display.clearDisplay();
+ display.setTextSize(2);
+  display.setTextColor(WHITE);
+  display.setCursor(0, 0);
+  display.print("Filter : ");
+  display.println(filterMode);
+  display.print("NR     : ");
+  display.println(nrMode);
+  display.display();
       }
     }
 
@@ -403,7 +449,15 @@ void core1_commands_check() {
         } else if (nrMode == 3) {
           AVGFilter_init(&flt2, 15);
         }
-
+         display.clearDisplay();
+ display.setTextSize(2);
+  display.setTextColor(WHITE);
+  display.setCursor(0, 0);
+  display.print("Filter : ");
+  display.println(filterMode);
+  display.print("NR     : ");
+  display.println(nrMode);
+  display.display();
       }
     }
 
@@ -429,11 +483,19 @@ void core1_commands_check() {
         } else if (nrMode == 3) {
           AVGFilter_init(&flt2, 15);
         }
-
       }
+       display.clearDisplay();
+  display.setTextSize(2);
+  display.setTextColor(WHITE);
+  display.setCursor(0, 0);
+  display.print("Filter : ");
+  display.println(filterMode);
+  display.print("NR     : ");
+  display.println(nrMode);
+  display.display();
     }
 
-    sleep_ms(200);
+    sleep_ms(100);
   }
 }
 
@@ -471,7 +533,8 @@ void audioIO_setup() {
 #ifdef DEBUG_SERIAL
     Serial.println("Failed to initialize I2S!");
 #endif
-    while (1); // do nothing
+    while (1)
+      ;  // do nothing
   }
 
   adcIn.setBuffers(4, 16);
@@ -479,7 +542,8 @@ void audioIO_setup() {
 
   if (!adcIn.begin(sampleRate)) {
     //Serial.println("Failed to initialize ADCInput!");
-    while (1); // do nothing
+    while (1)
+      ;  // do nothing
   }
 
   // start controller commands :
@@ -495,5 +559,4 @@ void audioIO_setup() {
   // pushbutton to select the filter on core 1
   multicore_launch_core1(core1_commands_check);
   sleep_ms(1400);
-
 }
